@@ -1,4 +1,6 @@
 plugins {
+    id 'kotlin-kapt'
+    id "dagger.hilt.android.plugin"
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
 }
@@ -23,6 +25,24 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Secure way to store API key
+            // https://jamie-dev.tistory.com/91
+            buildConfigField 'String', "NAVER_API_CLIENTID", NAVER_API_CLIENTID
+            resValue 'string', "NAVER_API_CLIENTID", NAVER_API_CLIENTID
+
+            buildConfigField 'String', "CENTERS_API_KEY", CENTERS_API_KEY
+            resValue 'string', "CENTERS_API_KEY", CENTERS_API_KEY
+            buildConfigField 'String', "CENTERS_API_KEY_ENCODED", CENTERS_API_KEY_ENCODED
+            resValue 'string', "CENTERS_API_KEY_ENCODED", CENTERS_API_KEY_ENCODED
+        }
+        debug {
+            buildConfigField 'String', "NAVER_API_CLIENTID", NAVER_API_CLIENTID
+            resValue 'string', "NAVER_API_CLIENTID", NAVER_API_CLIENTID
+
+            buildConfigField 'String', "CENTERS_API_KEY", CENTERS_API_KEY
+            resValue 'string', "CENTERS_API_KEY", CENTERS_API_KEY
+            buildConfigField 'String', "CENTERS_API_KEY_ENCODED", CENTERS_API_KEY_ENCODED
+            resValue 'string', "CENTERS_API_KEY_ENCODED", CENTERS_API_KEY_ENCODED
         }
     }
     compileOptions {
@@ -46,7 +66,7 @@ android {
 }
 
 dependencies {
-
+    // Default dependencies
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation "androidx.compose.ui:ui:$compose_version"
     implementation "androidx.compose.material:material:$compose_version"
@@ -59,4 +79,26 @@ dependencies {
     androidTestImplementation "androidx.compose.ui:ui-test-junit4:$compose_version"
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
     debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_version"
+
+    // https://github.com/fornewid/naver-map-compose
+    implementation "io.github.fornewid:naver-map-compose:$navermap_compose_version"
+    implementation "com.naver.maps:map-sdk:3.15.0"
+    implementation 'com.google.android.gms:play-services-location:16.0.0'
+
+    // DI (Hilt)
+//    implementation "com.google.dagger:hilt-android:1.3.2"
+    implementation "com.google.dagger:hilt-android:$hilt_version"
+    kapt "com.google.dagger:hilt-android-compiler:$hilt_version"
+
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.4.1'
+    implementation 'androidx.hilt:hilt-navigation-compose:1.0.0-alpha03'
+
+    // Retrofit2
+    implementation "com.squareup.retrofit2:retrofit:$retrofit_version"
+    implementation "com.squareup.retrofit2:converter-gson:$retrofit_version"
+}
+
+// Allow references to generated code
+kapt {
+    correctErrorTypes = true
 }
