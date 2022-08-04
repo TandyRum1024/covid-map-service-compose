@@ -51,7 +51,7 @@ android {
         compose true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion compose_version
+        kotlinCompilerExtensionVersion compose_compiler_version
     }
     packagingOptions {
         resources {
@@ -62,7 +62,8 @@ android {
 
 dependencies {
     // Default dependencies
-    implementation 'androidx.core:core-ktx:1.7.0'
+//    implementation 'androidx.core:core-ktx:1.7.0'
+    implementation "androidx.core:core-ktx:$core_version"
     implementation "androidx.compose.ui:ui:$compose_version"
     implementation "androidx.compose.material:material:$compose_version"
     implementation "androidx.compose.ui:ui-tooling-preview:$compose_version"
@@ -75,6 +76,7 @@ dependencies {
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
     debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_version"
 
+    // Naver Compose wrapper / Helper library
     // https://github.com/fornewid/naver-map-compose
     implementation "io.github.fornewid:naver-map-compose:$navermap_compose_version"
     implementation "com.naver.maps:map-sdk:3.15.0"
@@ -94,6 +96,11 @@ dependencies {
 
     // Current location / Fusedlocationsource
     implementation "com.google.android.gms:play-services-location:20.0.0"
+
+    // Room DB
+    implementation "androidx.room:room-runtime:$roomVersion"
+    kapt "androidx.room:room-compiler:$roomVersion"
+    implementation "androidx.room:room-ktx:$roomVersion" // for async / suspend fun DAO functions
 }
 
 // Allow references to generated code

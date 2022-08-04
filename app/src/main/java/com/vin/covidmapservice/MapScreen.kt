@@ -78,8 +78,8 @@ fun MarkerCenter (
     onClick: (Marker, Center) -> Unit
 ) {
     Marker(
-        state = MarkerState(position = CenterAPI.getCenterLatLng(center)),
-        iconTintColor = CenterAPI.getCenterTypeColour(center),
+        state = MarkerState(position = center.pos),
+        iconTintColor = center.markerColor,
         captionText = center.centerType,
         captionColor = Color.Green,
         onClick = {

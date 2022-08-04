@@ -1,44 +1,34 @@
 package com.vin.covidmapservice
 
-import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContract
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.*
 import androidx.compose.runtime.*
-
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.android.gms.location.*
-import com.naver.maps.geometry.LatLng
+import androidx.navigation.NavController
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationResult
 import com.naver.maps.map.CameraAnimation
 import com.naver.maps.map.CameraPosition
 import com.naver.maps.map.CameraUpdate
-import com.naver.maps.map.compose.*
+import com.naver.maps.map.compose.CameraPositionState
+import com.naver.maps.map.compose.ExperimentalNaverMapApi
+import com.naver.maps.map.compose.rememberCameraPositionState
 import com.vin.covidmapservice.ui.theme.CovidMapServiceTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.collectLatest
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 // Global state for preview flag as Naver map view does not like the Preview mode
 val isInPreview = compositionLocalOf { false }
@@ -59,10 +49,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    if (viewmodel.splashIsDone)
-                        MainScreen()
-                    else
-                        SplashScreen()
+                    MainAppScreen(viewmodel)
                 }
             }
         }
@@ -112,14 +99,19 @@ class MainActivity : ComponentActivity() {
 
         viewmodel.updateCurrentLocation(this)
         viewmodel.isPermissionGranted = permResult
-        viewmodel.testValue = 69
     }
+}
+
+@Composable
+fun MainAppScreen(viewmodel: MainViewModel = hiltViewModel()) {
+    AppNavigationHost(viewmodel = viewmodel, startNavDest = Screen.SplashScreen.navDest)
 }
 
 @OptIn(ExperimentalNaverMapApi::class)
 @Composable
-fun MainScreen(
-    viewmodel: MainViewModel = hiltViewModel()
+fun MapScreen(
+    viewmodel: MainViewModel = hiltViewModel(),
+    onNavigateToDebugMenu: () -> Unit,
 ) {
     // If in preview, don't call the naver map composable so that it won't break the Preview mode
     val cameraPositionState: CameraPositionState? = if (isInPreview.current) null else rememberCameraPositionState {
@@ -127,19 +119,21 @@ fun MainScreen(
     }
 
     Column {
-        Text(text = "Viewmodel.testValue = ${viewmodel.testValue}")
-        Text(text = "Viewmodel.isPermissionGranted = ${viewmodel.isPermissionGranted}")
         Button(onClick = { viewmodel.showCenterInfo = !viewmodel.showCenterInfo }) {
             Text("DEBUG: Toggle centerinfo()")
+        }
+        Button(onClick = onNavigateToDebugMenu) {
+            Text("DEBUG: Menu")
         }
         Button(onClick = { cameraPositionState?.move(CameraUpdate.scrollTo(viewmodel.mapCurrentLocation).animate(CameraAnimation.Easing, 1500)) }) {
             Text("To current location")
         }
         Map(
+            viewmodel = viewmodel,
             modifier = Modifier.weight(1f),
             cameraPositionState = cameraPositionState,
-            centers = viewmodel.centers,
-            onCenterMarkerClick = { marker, center ->
+            centers = if (isInPreview.current) listOf<Center>() else viewmodel.cachedCenters,
+            onCenterMarkerClick = if (isInPreview.current) { marker, center ->  } else { marker, center ->
                 // Toggle the center info screen
                 if (viewmodel.showCenterInfo && viewmodel.currentCenter.id == center.id) {
                     viewmodel.showCenterInfo = false
@@ -151,12 +145,15 @@ fun MainScreen(
                 cameraPositionState?.move(CameraUpdate.zoomIn().animate(CameraAnimation.Easing, 1500))
                 cameraPositionState?.move(CameraUpdate.scrollTo(marker.position).animate(CameraAnimation.Easing, 1500))
             },
-            onCurrentPosMarkerClick = {
-                cameraPositionState?.move(CameraUpdate.scrollTo(it.position).animate(CameraAnimation.Easing, 1500))
+            onCurrentPosMarkerClick = if (isInPreview.current) { marker ->  } else { marker ->
+                cameraPositionState?.move(CameraUpdate.scrollTo(marker.position).animate(CameraAnimation.Easing, 1500))
             }
         )
-        if (viewmodel.showCenterInfo)
-            CenterInfo(viewmodel.currentCenter)
+        // Surface wrapper for 'animated' slide-in of center information
+        Surface (modifier = Modifier.animateContentSize()) {
+            if (viewmodel.showCenterInfo)
+                CenterInfo(center = viewmodel.currentCenter)
+        }
     }
 }
 
@@ -178,60 +175,56 @@ fun CenterInfo(
 }
 
 @Composable
-fun SplashScreen(
+fun DebugScreen(
     viewmodel: MainViewModel = hiltViewModel()
 ) {
-    // Start the API loading
-    LaunchedEffect(Unit) {
-        CoroutineScope(Dispatchers.IO).launch {
-            viewmodel.updateAPICache().collect {
-                viewmodel.splashProgress = it.first
-                if (it.second != null) { // When it returns Pair<progress, List<Center>> instead ofPair<progress, null>, it means the task's over
-                    viewmodel.centers.addAll(it.second!!)
-                    // Move to the next screen!
-                    // TODO: Use the proper navigation provided by Android
-                    viewmodel.splashIsDone = true
+    val currentCoroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember{ SnackbarHostState() }
+
+    Column {
+        Text(text = "viewmodel.isPermissionGranted = ${viewmodel.isPermissionGranted}")
+        Text(text = "viewmodel.cachedCenters.size = ${viewmodel.cachedCenters.size}")
+        Button(
+            onClick = {
+                // Clear DB in IO coroutine and notify
+                CoroutineScope(Dispatchers.IO).launch {
+                    viewmodel.clearCacheDB()
+                    val dbLen = viewmodel.getDBCount()
+                    snackbarHostState.showSnackbar("Successfully cleared Room DB (DB size: $dbLen)")
                 }
             }
+        ) {
+            Text("Clear cache Room DB")
+        }
+        Button(
+            onClick = {
+                viewmodel.updateAPICache(
+                    onDone = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            val dbLen = viewmodel.getDBCount()
+                            snackbarHostState.showSnackbar("Successfully updated API cache DB (DB size: $dbLen)", duration = SnackbarDuration.Long)
+                        }
+                    },
+                    onProgressUpdate = {prog, isDone -> }
+                )
+            }
+        ) {
+            Text("Force DB re-cache")
         }
     }
-
-    Column (
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Title
-        Text("Welcome!")
-        Spacer(modifier = Modifier.height(2.dp))
-        // Progress
-        CircularProgressIndicator()
-        LinearProgressIndicator(progress = viewmodel.splashProgress)
-    }
+    SnackbarHost(hostState = snackbarHostState)
 }
-
-@Preview(showBackground = true, widthDp = 320, heightDp = 720)
-@Composable
-fun SplashPreview() {
-    // Make dummy viewmodel
-    val viewmodel = MainViewModelDummy()
-
-    CovidMapServiceTheme {
-        CompositionLocalProvider(isInPreview provides true) { // Notify the preview state
-            SplashScreen(viewmodel = viewmodel)
-        }
-    }
-}
-
 
 @Preview(showBackground = true, widthDp = 320, heightDp = 720)
 @Composable
 fun DefaultPreview() {
     // Make dummy viewmodel
-    val viewmodel = MainViewModelDummy()
+    val viewmodel = MainViewModelDummy(CenterCacheDB(null))
 
     CovidMapServiceTheme {
         CompositionLocalProvider(isInPreview provides true) { // Notify the preview state
-            MainScreen(viewmodel = viewmodel)
+            MapScreen(viewmodel = viewmodel, onNavigateToDebugMenu = {})
         }
     }
 }
+
