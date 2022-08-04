@@ -5,6 +5,9 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+def secretProperties = new Properties()
+secretProperties.load(new FileInputStream(rootProject.file("secrets.properties")))
+
 android {
     compileSdk 32
 
@@ -19,30 +22,22 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
+
+        // Secure way to store API key
+        // https://itnext.io/hide-and-keep-your-api-key-out-of-github-repository-7e89cc4b159d
+        buildConfigField 'String', "NAVER_API_CLIENTID", secretProperties['NAVER_API_CLIENTID']
+        resValue 'string', "NAVER_API_CLIENTID", secretProperties['NAVER_API_CLIENTID']
+
+        buildConfigField 'String', "CENTERS_API_KEY", secretProperties['CENTERS_API_KEY']
+        resValue 'string', "CENTERS_API_KEY", secretProperties['CENTERS_API_KEY']
+        buildConfigField 'String', "CENTERS_API_KEY_ENCODED", secretProperties['CENTERS_API_KEY_ENCODED']
+        resValue 'string', "CENTERS_API_KEY_ENCODED", secretProperties['CENTERS_API_KEY_ENCODED']
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Secure way to store API key
-            // https://jamie-dev.tistory.com/91
-            buildConfigField 'String', "NAVER_API_CLIENTID", NAVER_API_CLIENTID
-            resValue 'string', "NAVER_API_CLIENTID", NAVER_API_CLIENTID
-
-            buildConfigField 'String', "CENTERS_API_KEY", CENTERS_API_KEY
-            resValue 'string', "CENTERS_API_KEY", CENTERS_API_KEY
-            buildConfigField 'String', "CENTERS_API_KEY_ENCODED", CENTERS_API_KEY_ENCODED
-            resValue 'string', "CENTERS_API_KEY_ENCODED", CENTERS_API_KEY_ENCODED
-        }
-        debug {
-            buildConfigField 'String', "NAVER_API_CLIENTID", NAVER_API_CLIENTID
-            resValue 'string', "NAVER_API_CLIENTID", NAVER_API_CLIENTID
-
-            buildConfigField 'String', "CENTERS_API_KEY", CENTERS_API_KEY
-            resValue 'string', "CENTERS_API_KEY", CENTERS_API_KEY
-            buildConfigField 'String', "CENTERS_API_KEY_ENCODED", CENTERS_API_KEY_ENCODED
-            resValue 'string', "CENTERS_API_KEY_ENCODED", CENTERS_API_KEY_ENCODED
         }
     }
     compileOptions {
