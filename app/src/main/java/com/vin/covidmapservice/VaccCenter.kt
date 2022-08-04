@@ -1,5 +1,7 @@
 package com.vin.covidmapservice
 
+import androidx.compose.ui.graphics.Color
+import com.naver.maps.geometry.LatLng
 import kotlinx.coroutines.flow.Flow
 import retrofit2.Call
 import retrofit2.Retrofit
@@ -60,4 +62,15 @@ object CenterAPI {
                                         .addConverterFactory(GsonConverterFactory.create())
                                         .build()
                                         .create(CenterAPIInterface::class.java)
+
+    fun getCenterTypeColour(center: Center): Color {
+        when (center.centerType) {
+            "중앙/권역" -> return Color.Transparent
+            "지역" -> return Color.Blue
+            else -> return Color.Magenta
+        }
+    }
+    fun getCenterLatLng(center: Center): LatLng {
+        return LatLng(center.lat.toDouble(), center.lng.toDouble())
+    }
 }

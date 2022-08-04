@@ -91,6 +91,9 @@ dependencies {
     // Retrofit2
     implementation "com.squareup.retrofit2:retrofit:$retrofit_version"
     implementation "com.squareup.retrofit2:converter-gson:$retrofit_version"
+
+    // Current location / Fusedlocationsource
+    implementation "com.google.android.gms:play-services-location:20.0.0"
 }
 
 // Allow references to generated code
