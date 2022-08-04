@@ -12,20 +12,15 @@ import androidx.activity.viewModels
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Button
+import androidx.compose.material.*
+import androidx.compose.runtime.*
 
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,13 +33,12 @@ import com.naver.maps.map.CameraUpdate
 import com.naver.maps.map.compose.*
 import com.vin.covidmapservice.ui.theme.CovidMapServiceTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collectLatest
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import kotlin.coroutines.CoroutineContext
 
 // Global state for preview flag as Naver map view does not like the Preview mode
 val isInPreview = compositionLocalOf { false }
@@ -65,38 +59,19 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    MainApp()
+                    if (viewmodel.splashIsDone)
+                        MainScreen()
+                    else
+                        SplashScreen()
                 }
             }
         }
 
-        // API Test
-        // TODO: Move this to the splash screen, caching into the local DB
-        CenterAPI.inst.getCenters().enqueue(object: Callback<CenterResponse> {
-            override fun onResponse(
-                call: Call<CenterResponse>,
-                response: Response<CenterResponse>
-            ) {
-                Log.e("CENTERS", "API CALL RESPONSE:")
-                if (response.isSuccessful && response.code() == 200) {
-                    viewmodel.centers.clear()
-                    for (center in response.body()!!.data) {
-                        Log.e("CENTERS", "A\t${center.toString()}")
-                        viewmodel.centers.add(center)
-                    }
-                }
-                else {
-                    Log.e("CENTERS", "\tFAILED (code: ${response.code()})")
-                }
-            }
+        updatePermissions()
+    }
 
-            override fun onFailure(call: Call<CenterResponse>, t: Throwable) {
-                Log.e("CENTERS", "API CALL FAILED!")
-            }
-        })
-        //
-
-        // Check for permissions
+    fun updatePermissions () {
+        // Check for permissions, and requests it if needed
         // https://se-jung-h.tistory.com/entry/AndroidKotlin-%EB%84%A4%EC%9D%B4%EB%B2%84-%EC%A7%80%EB%8F%84-%ED%98%84%EC%9E%AC-%EC%9C%84%EC%B9%98
         var isPermitted = true
         for (perm in locationPermissions)
@@ -143,7 +118,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalNaverMapApi::class)
 @Composable
-fun MainApp(
+fun MainScreen(
     viewmodel: MainViewModel = hiltViewModel()
 ) {
     // If in preview, don't call the naver map composable so that it won't break the Preview mode
@@ -202,6 +177,52 @@ fun CenterInfo(
     }
 }
 
+@Composable
+fun SplashScreen(
+    viewmodel: MainViewModel = hiltViewModel()
+) {
+    // Start the API loading
+    LaunchedEffect(Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            viewmodel.updateAPICache().collect {
+                viewmodel.splashProgress = it.first
+                if (it.second != null) { // When it returns Pair<progress, List<Center>> instead ofPair<progress, null>, it means the task's over
+                    viewmodel.centers.addAll(it.second!!)
+                    // Move to the next screen!
+                    // TODO: Use the proper navigation provided by Android
+                    viewmodel.splashIsDone = true
+                }
+            }
+        }
+    }
+
+    Column (
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Title
+        Text("Welcome!")
+        Spacer(modifier = Modifier.height(2.dp))
+        // Progress
+        CircularProgressIndicator()
+        LinearProgressIndicator(progress = viewmodel.splashProgress)
+    }
+}
+
+@Preview(showBackground = true, widthDp = 320, heightDp = 720)
+@Composable
+fun SplashPreview() {
+    // Make dummy viewmodel
+    val viewmodel = MainViewModelDummy()
+
+    CovidMapServiceTheme {
+        CompositionLocalProvider(isInPreview provides true) { // Notify the preview state
+            SplashScreen(viewmodel = viewmodel)
+        }
+    }
+}
+
+
 @Preview(showBackground = true, widthDp = 320, heightDp = 720)
 @Composable
 fun DefaultPreview() {
@@ -210,7 +231,7 @@ fun DefaultPreview() {
 
     CovidMapServiceTheme {
         CompositionLocalProvider(isInPreview provides true) { // Notify the preview state
-            MainApp(viewmodel = viewmodel)
+            MainScreen(viewmodel = viewmodel)
         }
     }
 }
