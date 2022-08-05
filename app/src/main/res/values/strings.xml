@@ -1,3 +1,13 @@
 <resources>
-    <string name="app_name">CovidMapService</string>
+    <string name="app_name" translatable="false">CovidMapService</string>
+
+    <string name="debug_begin_title">Debug setup</string>
+    <string name="debug_title">Debug menu</string>
+    <string name="debug_permission">Is location permission granted?</string>
+    <string name="debug_cache_size">DB Cache list size</string>
+    <string name="debug_db_size">DB row count</string>
+    <string name="debug_slowapi">Emulate slow API call?</string>
+    <string name="debug_db_clear">Clear cache Room DB</string>
+    <string name="debug_db_recache">Force DB re-cache</string>
+    <string name="debug_begin">Start app</string>
 </resources>

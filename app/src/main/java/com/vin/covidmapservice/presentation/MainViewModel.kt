@@ -1,17 +1,21 @@
-package com.vin.covidmapservice
+package com.vin.covidmapservice.presentation
 
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.Color
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.naver.maps.geometry.LatLng
+import com.vin.covidmapservice.data.api.CenterAPI
+import com.vin.covidmapservice.domain.Center
+import com.vin.covidmapservice.data.CenterCacheDB
+import com.vin.covidmapservice.domain.centerModelToCenter
+import com.vin.covidmapservice.dummyCenterData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
@@ -24,27 +28,36 @@ import kotlin.system.measureTimeMillis
 // Viewmodel that contains the state of app. DI'd by Dagger Hilt for ease of injection
 @HiltViewModel
 open class MainViewModel @Inject constructor(private val cacheDB: CenterCacheDB): ViewModel() {
-    // screen UI state
+    // Debug
+    var debugEmulateSlowAPI by mutableStateOf(false)
+
+    // Screen UI state
     var isMarkerSelected by mutableStateOf(false)
     var splashProgress by mutableStateOf(0f)
 
-    // permission state
+    // Permission state
     var isPermissionGranted by mutableStateOf(false)
-    // map related
+    // Last known LatLng position of phone (if available)
     var mapCurrentLocation: LatLng by mutableStateOf(LatLng(37.532, 127.024612)) // Seoul latlng
-    // list of centers, fetched from DB
+    // List of centers, fetched from Cache DB
     var cachedCenters = mutableStateListOf<Center>()
-        private set
-    // currently selected center
-    var currentCenter by mutableStateOf( dummyCenterData )
+    // (currently running cached center collector)
     var currentCenterFetcher: Job? = null
+    // Currently selected center's data
+    var currentCenter by mutableStateOf( dummyCenterData )
 
     // Exposed DB
+    var isDBInUse = false
     open fun getDBCount (): Int {
         return cacheDB.getCount()
     }
-    open fun clearCacheDB () {
+    open fun clearCacheDB (): Boolean {
+        // In normal use cases rapid DB use won't probably happen, but check if the DB is currently in use just in case:
+        if (isDBInUse) return false
+        isDBInUse = true
         cacheDB.deleteAll()
+        isDBInUse = false
+        return true
     }
     // (for debug!)
     open fun dumpDB () {
@@ -112,10 +125,9 @@ open class MainViewModel @Inject constructor(private val cacheDB: CenterCacheDB)
                     )
                 }
 
-                Log.e(
-                    "CENTERS",
-                    "DATA READY; TOTAL ${cacheDB.getCount()} ITEMS (TOOK ${timeTaken * 0.001} s TOTAL)"
-                )
+                CoroutineScope(Dispatchers.IO).launch {
+                    Log.e("CENTERS", "DATA READY; TOTAL ${cacheDB.getCount()} ITEMS (TOOK ${timeTaken * 0.001} s TOTAL)")
+                }
                 isDataReady = true
             }
         }
@@ -169,21 +181,29 @@ open class MainViewModel @Inject constructor(private val cacheDB: CenterCacheDB)
     }
     // Updates list of vaccination centers. Calls corresponding callbacks
     // Wrapper of updateAPICacheAndReturnFlow()
-    open fun updateAPICache (onProgressUpdate: (Float, Boolean) -> Unit, onDone: () -> Unit, skipAPICall: Boolean = false, emulateSlowAPICall: Boolean = false) {
+    open fun updateAPICache (onProgressUpdate: (Float, Boolean) -> Unit, onDone: () -> Unit, skipAPICall: Boolean = false, emulateSlowAPICall: Boolean = false): Boolean {
+        // In normal use cases rapid DB use won't probably happen, but check if the DB is currently in use just in case:
+        if (isDBInUse) return false
+        isDBInUse = true
         // Launch API cacher coroutine in which we get the flow of progress from updateAPICacheFlow():
         CoroutineScope(Dispatchers.IO).launch {
             updateAPICacheAndReturnFlow(dataReady = skipAPICall, emulateSlowAPICall =  emulateSlowAPICall).collectLatest() {
                 onProgressUpdate(it.first, it.second)
                 if (it.second) { // done
                     onDone()
+                    isDBInUse = false
                 }
             }
         }
+        return true
     }
 
     // Updates list of vaccination centers. Returns Flow of Pair<Progress: Float, IsDone: Boolean>
     open fun beginCollectingCachedCenter () {
-        if (currentCenterFetcher == null) {
+        if (currentCenterFetcher == null || currentCenterFetcher!!.isActive) {
+            // Halt previously running fetcher coroutine
+            if (currentCenterFetcher != null)
+                currentCenterFetcher!!.cancel()
             // Launch API cache fetcher coroutine
             currentCenterFetcher = viewModelScope.launch(Dispatchers.IO) {
                 // Add the DB contents to the cache list
@@ -206,10 +226,10 @@ class MainViewModelDummy @Inject constructor(cacheDB: CenterCacheDB): MainViewMo
         onDone: () -> Unit,
         skipAPICall: Boolean,
         emulateSlowAPICall: Boolean
-    ) {}
+    ): Boolean { return false }
     override fun beginCollectingCachedCenter() { }
 
-    override fun clearCacheDB() { }
+    override fun clearCacheDB(): Boolean { return false }
     override fun getDBCount (): Int { return 0 }
     override fun dumpDB () { }
 }

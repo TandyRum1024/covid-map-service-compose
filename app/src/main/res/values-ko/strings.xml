@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="debug_begin_title">디버그 사전 설정</string>
+    <string name="debug_title">디버그 메뉴</string>
+    <string name="debug_permission">위치 권한 부여 여부?</string>
+    <string name="debug_cache_size">Room 캐시 DB: 뷰모델 리스트 크기</string>
+    <string name="debug_db_size">Room 캐시 DB: 테이블 크기</string>
+    <string name="debug_slowapi">느린 API 호출 에뮬레이션?</string>
+    <string name="debug_db_clear">Room 캐시 DB 데이터 모두 삭제</string>
+    <string name="debug_db_recache">Room 캐시 DB 강제 로딩</string>
+    <string name="debug_begin">Splash 화면으로 시작</string>
+</resources>

@@ -22,7 +22,7 @@
             android:name="com.naver.maps.map.CLIENT_ID"
             android:value="@string/NAVER_API_CLIENTID" />
         <activity
-            android:name=".MainActivity"
+            android:name=".presentation.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.CovidMapService">

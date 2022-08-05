@@ -1,5 +1,6 @@
-package com.vin.covidmapservice
+package com.vin.covidmapservice.data.api
 
+import com.vin.covidmapservice.BuildConfig
 import kotlinx.coroutines.delay
 import retrofit2.Call
 import retrofit2.Callback
@@ -15,37 +16,6 @@ const val API_PAGE_PERPAGE = 10
 /*
     Vaccination center API: Retrofit2 -> Client
  */
-// Vaccination center model, from API.
-// See: https://www.data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15077586#/
-// This is later converted into Center data class (see: Center.kt), which is the real data class we display and use within the other parts of the app
-data class CenterAPIModel(
-    val id: Int,
-    val centerName: String,
-    val sido: String,
-    val sigungu: String,
-    val facilityName: String,
-    val zipCode: String,
-    val address: String,
-    val lat: String,
-    val lng: String,
-    val createdAt: String,
-    val updatedAt: String,
-    val centerType: String,
-    val org: String,
-    val phoneNumber: String,
-)
-
-// Vaccination center API call response holder
-data class CenterAPIResponse (
-    val page: Int,
-    val perPage: Int,
-    val totalCount: Int,
-    val currentCount: Int,
-    val matchCount: Int,
-
-    val data: List<CenterAPIModel> // size = currentCount
-)
-
 // Linked by Retrofit2 builder below:
 interface CenterAPIInterface {
     @GET("v1/centers") // final request is something like this: https://api.odcloud.kr/api/15077586/v1/centers?page=<PAGE>&perPage=<PERPAGE>&serviceKey=<API_KEY>

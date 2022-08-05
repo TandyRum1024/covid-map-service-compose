@@ -1,4 +1,4 @@
-package com.vin.covidmapservice
+package com.vin.covidmapservice.presentation
 
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.vin.covidmapservice.data.CenterCacheDB
+import com.vin.covidmapservice.isInPreview
 import com.vin.covidmapservice.ui.theme.CovidMapServiceTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,7 +58,8 @@ fun SplashScreen(
                     viewmodel.splashProgress = progress
                 },
                 skipAPICall = !shouldRefreshCache,
-                onDone = onDone
+                onDone = onDone,
+                emulateSlowAPICall = viewmodel.debugEmulateSlowAPI,
             )
         }
     }

@@ -1,4 +1,4 @@
-package com.vin.covidmapservice
+package com.vin.covidmapservice.presentation
 
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -10,18 +10,16 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
+import com.vin.covidmapservice.data.CenterCacheDB
+import com.vin.covidmapservice.isInPreview
 import com.vin.covidmapservice.ui.theme.CovidMapServiceTheme
 import dagger.hilt.android.AndroidEntryPoint
-
-// Global state for preview flag as Naver map view does not like the Preview mode
-val isInPreview = compositionLocalOf { false }
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

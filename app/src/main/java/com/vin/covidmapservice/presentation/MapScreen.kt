@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalNaverMapApi::class)
 
-package com.vin.covidmapservice
+package com.vin.covidmapservice.presentation
 
 import android.util.Log
 import androidx.compose.foundation.background
@@ -26,9 +26,12 @@ import com.naver.maps.map.CameraPosition
 import com.naver.maps.map.CameraUpdate
 import com.naver.maps.map.compose.*
 import com.naver.maps.map.overlay.Marker
+import com.vin.covidmapservice.domain.Center
+import com.vin.covidmapservice.dummyCenterData
+import com.vin.covidmapservice.isInPreview
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalNaverMapApi::class, ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun MapScreen(
     viewmodel: MainViewModel = hiltViewModel(),
@@ -162,7 +165,6 @@ fun Map(
 // Marker: Current pos.
 @Composable
 fun MarkerCurrentPos (
-    modifier: Modifier = Modifier,
     currentLocation: LatLng = LatLng(37.532, 127.024612), // Seoul latlng
     onClick: (Marker) -> Unit
 ) {
@@ -180,7 +182,6 @@ fun MarkerCurrentPos (
 // Marker: Vaccination centers
 @Composable
 fun MarkerCenter (
-    modifier: Modifier = Modifier,
     center: Center = dummyCenterData,
     onClick: (Marker, Center) -> Unit
 ) {

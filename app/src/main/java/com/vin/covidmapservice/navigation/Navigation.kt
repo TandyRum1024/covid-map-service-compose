@@ -1,10 +1,11 @@
-package com.vin.covidmapservice
+package com.vin.covidmapservice.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.vin.covidmapservice.presentation.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -16,6 +17,7 @@ sealed class Screen(val navDest: String) {
     object SplashScreen: Screen("splash")
     object MapScreen: Screen("map")
     object DebugScreen: Screen("debugmenu")
+    object DebugBeginScreen: Screen("debugbegin")
 }
 
 // Navigation host
@@ -52,6 +54,18 @@ fun AppNavigationHost (
                 }
             },
             onLocationPermissionRequest = onLocationPermissionRequest)
+        }
+        composable(Screen.DebugBeginScreen.navDest) {
+            DebugInitScreen(viewmodel = viewmodel, onNavigateToSplashScreen = {
+                // Make sure to update the navigation on the main thread
+                CoroutineScope(Dispatchers.Main).launch {
+                    navController.navigate(Screen.SplashScreen.navDest) {
+                        popUpTo(Screen.DebugBeginScreen.navDest) { inclusive = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            })
         }
         composable(Screen.DebugScreen.navDest) { DebugScreen(viewmodel = viewmodel) }
     }
