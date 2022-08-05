@@ -2,7 +2,6 @@ package com.vin.covidmapservice
 
 import androidx.compose.runtime.Composable
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -23,7 +22,8 @@ sealed class Screen(val navDest: String) {
 @Composable
 fun AppNavigationHost (
     viewmodel: MainViewModel = hiltViewModel(),
-    startNavDest: String
+    startNavDest: String,
+    onLocationPermissionRequest: () -> Unit,
 ) {
     val navController = rememberNavController()
 
@@ -50,7 +50,8 @@ fun AppNavigationHost (
                         restoreState = true
                     }
                 }
-            })
+            },
+            onLocationPermissionRequest = onLocationPermissionRequest)
         }
         composable(Screen.DebugScreen.navDest) { DebugScreen(viewmodel = viewmodel) }
     }

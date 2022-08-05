@@ -1,5 +1,6 @@
 package com.vin.covidmapservice
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +32,9 @@ fun SplashScreen(
             var shouldRefreshCache = false
 
             // Check for cache
-            if (viewmodel.getDBCount() <= 0) {
+            val count = viewmodel.getDBCount()
+            Log.d("DB", "viewmodel.getDBCount(): ${count}")
+            if (count < 100) { // either not loaded at all or DB caching got cancelled halfway through
                 shouldRefreshCache = true
             }
 
@@ -45,27 +48,16 @@ fun SplashScreen(
                 viewmodel.beginCollectingCachedCenter()
 
                 // Move to the next screen!
-                // TODO: Use the proper navigation provided by Android
-//                viewmodel.splashIsDone = true
                 onNavigateToMapScreen()
             }
 
-            if (shouldRefreshCache) {
-                viewmodel.updateAPICache(
-                    onProgressUpdate = { progress, isDone ->
-                        viewmodel.splashProgress = progress
-                    },
-                    onDone = onDone
-                )
-            }
-            else {
-                viewmodel.updateProgress(
-                    onProgressUpdate = { progress, isDone ->
-                        viewmodel.splashProgress = progress
-                    },
-                    onDone = onDone
-                )
-            }
+            viewmodel.updateAPICache(
+                onProgressUpdate = { progress, isDone ->
+                    viewmodel.splashProgress = progress
+                },
+                skipAPICall = !shouldRefreshCache,
+                onDone = onDone
+            )
         }
     }
 
