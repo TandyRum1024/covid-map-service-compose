@@ -20,18 +20,6 @@ abstract class CenterCacheDBAbstract : RoomDatabase() {
     abstract fun centerCacheDAO(): CenterCacheDAO
 }
 
-/*
-    From the assignment's specs, only the following data from the API result are used:
-        (id)
-        (pos: latlng)
-        address
-        centerName
-        facilityName
-        phoneNumber
-        updatedAt
-    Additional data:
-        Type (used for marker colour and caption)
- */
 // For this project we'll be storing the LatLng objects are following string-encoded format:
 // "lat;lng" -- Therefore we must define a converter to convert between the string and the LatLng
 class CenterDataConverters {

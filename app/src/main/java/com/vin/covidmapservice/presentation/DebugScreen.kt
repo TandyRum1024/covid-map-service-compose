@@ -109,7 +109,8 @@ fun DebugScreen(
                             snackbarHostState.showSnackbar("Successfully updated API cache DB (DB size: $dbSize)")
                         }
                     },
-                    onProgressUpdate = {prog, isDone -> }
+                    onProgressUpdate = {prog, isDone -> },
+                    emulateSlowAPICall = viewmodel.debugEmulateSlowAPI
                 )
                 if (!res) {
                     currentCoroutineScope.launch {

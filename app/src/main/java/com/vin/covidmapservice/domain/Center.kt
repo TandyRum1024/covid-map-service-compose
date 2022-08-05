@@ -9,6 +9,18 @@ import com.vin.covidmapservice.data.api.CenterAPIModel
 import com.vin.covidmapservice.data.DB_TABLE_NAME
 
 // Center entity representing a row within the DB
+/*
+    From the assignment's specs, only the following data from the API result are used:
+        (id)
+        (pos: latlng)
+        address
+        centerName
+        facilityName
+        phoneNumber
+        updatedAt
+    Additional data:
+        Type (used for marker colour and caption)
+ */
 @Entity(tableName = DB_TABLE_NAME)
 data class Center(
     @PrimaryKey(autoGenerate = true)
